@@ -1,7 +1,15 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Tuple
-from core.models import LogLine  # Ensure LogLine is defined in core/models.py
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from core.models import LogLine
+
+# === Severity and Category Definitions ===
+@dataclass(frozen=True)
+class TokenTypeSeverity:
+    level: int
+    label: str
 
 
 class TokenCategory(Enum):
@@ -16,22 +24,24 @@ class TokenCategory(Enum):
     UNKNOWN = auto()
 
 
+# === TokenType Definitions ===
 class TokenType(Enum):
-    SECTION_START = (0, TokenCategory.STRUCTURAL)
-    SECTION_END = (0, TokenCategory.STRUCTURAL)
-    COMMAND = (0, TokenCategory.COMMAND)
-    STACK_TRACE = (190, TokenCategory.FAILURE)
-    STEP = (0, TokenCategory.STRUCTURAL)
-    WARNING = (50, TokenCategory.FAILURE)
-    ERROR = (100, TokenCategory.FAILURE)
-    INFO = (30, TokenCategory.DIAGNOSTIC)
-    DEBUG = (20, TokenCategory.DIAGNOSTIC)
-    ASSERTION_FAIL = (150, TokenCategory.FAILURE)
-    TEST_FAILURE = (160, TokenCategory.FAILURE)
-    EXIT_CODE = (200, TokenCategory.FAILURE)
-    DEFAULT = (0, TokenCategory.UNKNOWN)
-
-    def __init__(self, severity: int, category: TokenCategory):
+    SECTION_START = (TokenTypeSeverity(0, "info"), TokenCategory.STRUCTURAL)
+    SECTION_END = (TokenTypeSeverity(0, "info"), TokenCategory.STRUCTURAL)
+    COMMAND = (TokenTypeSeverity(0, "info"), TokenCategory.COMMAND)
+    STACK_TRACE = (TokenTypeSeverity(190, "error"), TokenCategory.FAILURE)
+    STEP = (TokenTypeSeverity(0, "info"), TokenCategory.STRUCTURAL)
+    WARNING = (TokenTypeSeverity(50, "warning"), TokenCategory.FAILURE)
+    ERROR = (TokenTypeSeverity(100, "error"), TokenCategory.FAILURE)
+    INFO = (TokenTypeSeverity(30, "info"), TokenCategory.DIAGNOSTIC)
+    DEBUG = (TokenTypeSeverity(20, "debug"), TokenCategory.DIAGNOSTIC)
+    ASSERTION_FAIL = (TokenTypeSeverity(150, "error"), TokenCategory.FAILURE)
+    TEST_FAILURE = (TokenTypeSeverity(160, "error"), TokenCategory.FAILURE)
+    EXIT_CODE = (TokenTypeSeverity(200, "error"), TokenCategory.FAILURE)
+    IGNORE = (TokenTypeSeverity(0, "info"), TokenCategory.METADATA)  # ✅ Added IGNORE token
+    DEFAULT = (TokenTypeSeverity(0, "unknown"), TokenCategory.UNKNOWN)
+    EXIT_CODE_NON_ZERO = (TokenTypeSeverity(201, "error"), TokenCategory.FAILURE)
+    def __init__(self, severity: TokenTypeSeverity, category: TokenCategory):
         self.severity = severity
         self.category = category
 
@@ -41,17 +51,27 @@ class TokenType(Enum):
 
     @property
     def is_warning(self) -> bool:
-        return 50 <= self.severity < 100
+        return 50 <= self.severity.level < 100
 
     @property
     def is_error(self) -> bool:
-        return self.severity >= 100
+        return self.severity.level >= 100
 
     @classmethod
-    def get_by_severity_threshold(cls, min_severity: int) -> list:
-        return [t for t in cls if t.severity >= min_severity]
+    def get_by_severity_threshold(cls, min_severity: int) -> List["TokenType"]:
+        return [t for t in cls if t.severity.level >= min_severity]
 
 
+# === Priority Mapping ===
+token_type_priorities = {
+    TokenType.ERROR: 100,
+    TokenType.WARNING: 90,
+    TokenType.COMMAND: 80,
+    # Extend as needed...
+}
+
+
+# === Segment Types ===
 class SegmentType(Enum):
     STEP = "STEP"
     BLOCK = "BLOCK"
@@ -59,17 +79,18 @@ class SegmentType(Enum):
     DEFAULT = "DEFAULT"
 
 
+# === Token Object ===
 @dataclass
 class Token:
     type: TokenType
     value: str
     line_reference: int
-    source_line: LogLine
+    source_line: 'LogLine'
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def severity(self) -> int:
-        return self.type.severity
+        return self.type.severity.level
 
     @property
     def category(self) -> TokenCategory:
@@ -88,6 +109,7 @@ class Token:
         return self.type.is_error
 
 
+# === TokenizedSegment Object ===
 @dataclass
 class TokenizedSegment:
     segment_id: str
@@ -132,3 +154,13 @@ class TokenizedSegment:
     def get_highest_severity_tokens(self) -> List[Token]:
         max_severity = self.severity
         return [token for token in self.tokens if token.severity == max_severity]
+
+
+# === Suppression Rules ===
+class TokenSuppressionRule(Enum):
+    """Types of token suppression rules for avoiding false positives."""
+    EXACT_PHRASE = auto()
+    CONTEXTUAL_PHRASE = auto()
+    NEGATIVE_LOOKAHEAD = auto()
+    SURROUNDING_CONTEXT = auto()
+    SECTION_BASED = auto()

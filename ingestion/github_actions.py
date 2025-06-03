@@ -1,11 +1,17 @@
 import re
 import datetime
-from typing import Iterator, Dict, Any, Match, Optional, Callable, List, Union
+from typing import Iterator, Dict, Any, Match, Optional, Callable, List
 from urllib.parse import urlparse
 
 from .base import BaseLogIngestor, pipeline_processor
 from core.models import LogLine
-import ansiscape  # Assumes ansi stripping library or utility
+
+# Safe import for ANSI stripping
+try:
+    from ansiscape.stripping import strip as strip_ansi
+except ImportError:
+    def strip_ansi(text: str) -> str:
+        return text  # Fallback no-op if library missing
 
 class GitHubActionsIngestor(BaseLogIngestor):
     """Ingestor for GitHub Actions workflow logs with preprocessing pipeline."""
@@ -42,7 +48,7 @@ class GitHubActionsIngestor(BaseLogIngestor):
     @pipeline_processor
     def _preprocess_ansi_codes(self, lines: Iterator[tuple[int, str]]) -> Iterator[tuple[int, str]]:
         for line_number, line in lines:
-            cleaned = ansiscape.strip_ansi(line)
+            cleaned = strip_ansi(line)
             yield (line_number, cleaned)
 
     @pipeline_processor
@@ -95,7 +101,7 @@ class GitHubActionsIngestor(BaseLogIngestor):
     def _process_standard_line(self, match: Match, original: str) -> LogLine:
         timestamp_str = match.group(1)
         level = (match.group(2) or 'info').lower()
-        message = match.group(3)
+        message = match.group(3) or ""
 
         if '.' in timestamp_str:
             parts = timestamp_str.split('.')
@@ -146,3 +152,10 @@ class GitHubActionsIngestor(BaseLogIngestor):
         return (line for line in log_iterator if
                 line.level in ('error', 'fatal', 'warning') or
                 line.metadata.get('type') == 'annotation')
+
+    def stream_log(self, source: str) -> Iterator[LogLine]:
+        """Reads the log file and yields normalized LogLine objects."""
+        with open(source, "r", encoding="utf-8") as file:
+            lines = ((i, line.rstrip("\n")) for i, line in enumerate(file))
+            for processed in self.process(lines):
+                yield processed

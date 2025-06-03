@@ -1,5 +1,10 @@
 # ingestion/buffered_ingestion.py
 
+from ingestion.base import BaseLogIngestor
+from core.models import LogLine
+from utils.buffered_stream_reader import BufferedStreamReader
+
+
 class LogSanitizer:
     @staticmethod
     def sanitize(line: str):
@@ -11,11 +16,11 @@ class LogSanitizer:
             "was_trimmed": cleaned_line != line
         }
         return cleaned_line, metadata
-# ingestion/buffered_ingestion.py
+
 
 class BufferedStreamReader:
     """Buffered wrapper that makes file path behave like file object with readlines()."""
-    
+
     def __init__(self, file_path, buffer_size=8192):
         self.file_path = file_path
         self.buffer_size = buffer_size
@@ -42,3 +47,12 @@ class BufferedStreamReader:
 
     def close(self):
         self._file.close()
+
+
+class BufferedLogIngestor(BaseLogIngestor):
+    """Log ingestor that reads logs from a buffered file stream."""
+
+    def stream_log(self, path: str):
+        with BufferedStreamReader(path) as reader:
+            for line in reader:
+                yield self.parse_log_line(line)

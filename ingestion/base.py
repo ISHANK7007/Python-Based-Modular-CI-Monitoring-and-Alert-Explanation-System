@@ -10,7 +10,8 @@ from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from core.models import LogLine
 from utils.metadata_injector import MetadataInjector, MetadataRule
-
+from functools import wraps
+from typing import Callable, Iterator
 T = TypeVar('T')
 
 
@@ -142,10 +143,11 @@ class BufferedStreamReader:
             self._file = None
             self._close_file = False
 
-
-def pipeline_processor(func: Callable[[Iterator[T]], Iterator[T]]) -> Callable[[Iterator[T]], Iterator[T]]:
-    def wrapper(source_iterator: Iterator[T]) -> Iterator[T]:
-        return func(source_iterator)
+    
+def pipeline_processor(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(self, lines: Iterator[tuple[int, str]]) -> Iterator[tuple[int, str]]:
+        return func(self, lines)
     return wrapper
 
 
@@ -223,3 +225,10 @@ class BaseLogIngestor(ABC):
 
     def close(self):
         pass
+    def process(self, lines: Iterator[tuple[int, str]]) -> Iterator[LogLine]:
+        """Applies the preprocessing pipeline to raw lines and normalizes them into LogLine objects."""
+        result = lines
+        for processor in self._get_preprocessors():
+            result = processor(result)
+        return (self.normalize(line) for _, line in result)
+    
