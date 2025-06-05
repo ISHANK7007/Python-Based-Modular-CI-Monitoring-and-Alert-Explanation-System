@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Tuple
-from core.models import LogLine  # Ensure LogLine is correctly defined and imported
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from core.models import LogLine  # only for static analysis
+
+# ------------------------ ENUMS ------------------------
 
 class TokenCategory(Enum):
     STRUCTURAL = auto()
@@ -14,7 +17,6 @@ class TokenCategory(Enum):
     SYSTEM = auto()
     METADATA = auto()
     UNKNOWN = auto()
-
 
 class TokenType(Enum):
     STEP = (0, TokenCategory.STRUCTURAL)
@@ -51,20 +53,20 @@ class TokenType(Enum):
     def get_by_severity_threshold(cls, min_severity: int) -> list:
         return [t for t in cls if t.severity >= min_severity]
 
-
 class SegmentType(Enum):
     STEP = "STEP"
     BLOCK = "BLOCK"
     TRACE = "TRACE"
     DEFAULT = "DEFAULT"
 
+# ------------------------ DATACLASSES ------------------------
 
 @dataclass
 class Token:
     type: TokenType
     value: str
     line_reference: int
-    source_line: LogLine
+    source_line: "LogLine"  # Use forward reference to avoid circular import
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -86,7 +88,6 @@ class Token:
     @property
     def is_error(self) -> bool:
         return self.type.is_error
-
 
 @dataclass
 class TokenizedSegment:

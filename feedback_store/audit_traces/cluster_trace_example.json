@@ -1,0 +1,71 @@
+{
+  "trace_id": "cat-j12345-c789",
+  "job_id": "job-12345",
+  "timestamp": "2023-06-15T14:32:10Z",
+  "version": "1.2.0",
+  "processing_metadata": {
+    "duration_ms": 42,
+    "trace_detail_level": "STANDARD", 
+    "provider": "GitHub"
+  },
+  
+  "assignment_result": {
+    "cluster_id": "cluster-789",
+    "label": "DEPENDENCY_VERSION_MISMATCH",
+    "confidence": 0.87,
+    "assignment_method": "token_similarity",
+    "decision_factors": ["label_match", "token_pattern_match", "stack_trace_similarity"]
+  },
+  
+  "primary_evidence": {  
+    "key_segments": [
+      {
+        "segment_id": "seg-456",
+        "line_range": [120, 135],
+        "match_strength": 0.92,
+        "key_tokens": [
+          {"token": "incompatible", "weight": 0.85, "type": "ERROR_MESSAGE"},
+          {"token": "requires version", "weight": 0.79, "type": "ERROR_MESSAGE"}
+        ]
+      }
+    ],
+    "similarity_metrics": {
+      "jaccard": 0.83,
+      "weighted_score": 0.87,
+      "pattern_match_rate": 0.91
+    }
+  },
+  
+  "cluster_candidates": {
+    "considered_count": 12,
+    "top_alternatives": [  
+      {
+        "cluster_id": "cluster-456",
+        "label": "LIBRARY_INCOMPATIBILITY",
+        "similarity_score": 0.72,
+        "rejection_reason": "lower_similarity_than_primary"
+      },
+      {
+        "cluster_id": "cluster-234",
+        "label": "DEPENDENCY_VERSION_MISMATCH",  
+        "similarity_score": 0.65,
+        "rejection_reason": "lower_similarity_within_label"
+      }
+    ]
+  },
+  
+  "detailed_token_match": {
+    "match_summary": {
+      "total_tokens": 156,
+      "matched_tokens": 87,
+      "weighted_match_rate": 0.79,
+      "critical_token_match_rate": 0.92
+    }
+  },
+  
+  "links": {
+    "cluster_profile": "/api/v1/clusters/cluster-789",
+    "job_details": "/api/v1/jobs/job-12345",
+    "full_token_match": "/api/v1/trace/cat-j12345-c789/tokens"
+  }
+}
