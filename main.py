@@ -1,65 +1,81 @@
-# main.py
 
 import os
-from ingestion import create_ingestor
-from tokenization.pipeline_factory import TokenizationPipelineFactory
+import json
+from ingestion.github_actions import GitHubActionsIngestor
+from ingestion.gitlab import GitLabCIIngestor
+from ingestion.factory import create_ingestor
+from ingestion.buffered_ingestion import BufferedLogIngestor
 from core.models import LogLine
-from utils.buffered_stream_reader import BufferedStreamReader
+from core.job_context import JobContext
+from utils.metadata_injector import MetadataInjector
+from utils.section_validator import SectionValidator
 
-# MODE: "github", "gitlab", "auto"
-MODE = "auto"
+# Tokenization pipeline components
+from tokenization.pipeline import TokenizationPipeline
+from tokenization.tokenizer import BasicTokenizer as Tokenizer
+from tokenization.segment_classifier import SegmentClassifier
+from tokenization.context_analyzer import ContextAnalyzer
+from tokenization.grouping import GroupingStrategy
 
-def write_sample_log(provider, path):
-    with open(path, "w", encoding="utf-8") as f:
-        if provider == "github":
-            f.write("2023-05-15T10:11:22.3456789Z [error] Build failed\n")
-            f.write("##[group]Build Step\n")
-            f.write("2023-05-15T10:11:23.1234567Z [info] Running tests\n")
-            f.write("##[endgroup]\n")
-            f.write("##[warning]Deprecated API used file=main.py,line=42,endLine=42,col=5,endColumn=10\n")
-        elif provider == "gitlab":
-            f.write("section_start:1716816585:setup[collapsed=true]\n")
-            f.write("2023-06-15T14:23:41.123Z Initializing environment\n")
-            f.write("section_end:1716816590:setup\n")
-            f.write("2023-06-15T14:23:42.456Z Running build step\n")
-            f.write("2023-06-15T14:23:43.789Z Compilation successful\n")
-        else:
-            f.write("UNRECOGNIZED LOG LINE FORMAT\n")
+# Root cause analysis engine and classifiers
+from tokenization.classifiers.root_cause_engine import RootCauseAnalysisEngine
+from tokenization.classifiers.rule_based_classifier import BuildFailureClassifier, OutOfMemoryClassifier, MissingDependencyClassifier
 
-def test_auto_ingestor(log_path):
-    with open(log_path, "r", encoding="utf-8") as f:
-        ingestor = create_ingestor(f)
-        section_map = {}
-        for log in ingestor.stream_log():
-            section = log.section or "Uncategorized"
-            section_map.setdefault(section, 0)
-            section_map[section] += 1
-            print(log.get_context_summary())
-            print(log.to_json(indent=2))
+# Renderer
+from tokenization.classifiers.auditable_renderer import AuditableRenderer
 
-        print("\n=== Step Summary ===")
-        for section, count in section_map.items():
-            print(f"{section}: {count} lines")
+# Set mode
+MODE = "analyze"  # Options: "gitlab", "multi", "detect", "injector", "section_validate", "tokenize", "analyze"
 
-def test_pipeline(log_path):
-    print("\n--- Tokenization Pipeline Output ---\n")
-    stream = BufferedStreamReader(log_path)
-    log_lines = (LogLine.from_raw(line, idx + 1) for idx, line in enumerate(stream))
-    pipeline = TokenizationPipelineFactory.create_default_pipeline()
-    for segment in pipeline.process(log_lines):
-        print(f"[Segment {segment.segment_id}] {segment.segment_type.name} | Severity: {segment.severity}")
-        print(f"Line Range: {segment.line_range}")
-        print(f"Contains Failure: {segment.contains_failure}, Errors: {segment.contains_error}, Warnings: {segment.contains_warning}")
-        print(f"Text:\n{segment.get_text()}\n")
+CLASSIFIERS = [
+    BuildFailureClassifier(name="build_failure", label="BUILD_FAILURE"),
+    OutOfMemoryClassifier(name="oom", label="OOM"),
+    MissingDependencyClassifier(name="missing_dep", label="MISSING_DEPENDENCY")
+]
+
+def test_root_cause_analysis():
+    log_path = "github_sample_log.txt"
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write("2023-06-15T14:23:41.123Z Starting build\n")
+        f.write("##[group]Build started\n")
+        f.write("error: cannot find symbol\n")
+        f.write("##[endgroup]\n")
+
+    ingestor = GitHubActionsIngestor(log_path)
+    log_lines = ingestor.stream_log(log_path)
+
+    pipeline = TokenizationPipeline(
+        tokenizer=Tokenizer(),
+        segment_classifier=SegmentClassifier(classification_rules=CLASSIFIERS),
+        context_analyzer=ContextAnalyzer(),
+        grouping_strategy=GroupingStrategy()
+    )
+    segments = pipeline.process(log_lines)
+
+    print("=== Tokenized Segments ===")
+    for segment in segments:
+        print(f"[Segment] ID={segment.segment_id} | Text={{segment.raw_text}} | Type={{segment.segment_type}}")
+
+    print("\n=== Direct Match Test ===")
+    build_classifier = BuildFailureClassifier(name="build_failure", label="BUILD_FAILURE")
+    for s in segments:
+        result = build_classifier.match(s)
+        print(f"[MATCH] {{s.raw_text}} => {{result.label if result else 'No match'}}")
+
+    engine = RootCauseAnalysisEngine(classifiers=CLASSIFIERS)
+    predictions = engine.analyze(segments)
+
+    if not predictions:
+        print("No root cause predictions found.")
+        os.remove(log_path)
+        return
+
+    report = engine.generate_summary_report(predictions)
+    print("Summary Report:")
+    print(json.dumps(report, indent=2))
+
+    os.remove(log_path)
 
 if __name__ == "__main__":
-    sample_path = "detected_log.txt"
-    provider = MODE if MODE in ["github", "gitlab"] else "github"
-    write_sample_log(provider, sample_path)
-
-    print("\n--- Ingestor Output ---\n")
-    test_auto_ingestor(sample_path)
-
-    test_pipeline(sample_path)
-
-    os.remove(sample_path)
+    if MODE == "analyze":
+        test_root_cause_analysis()
