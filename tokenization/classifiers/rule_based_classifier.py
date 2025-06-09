@@ -31,7 +31,14 @@ class RuleBasedClassifier(BaseRootCauseClassifier):
         pass
 
     def classify(self, segments: List[TokenizedSegment]) -> List[RootCausePrediction]:
-        return [pred for segment in segments if (pred := self.match(segment))]
+        predictions = []
+        for segment in segments:
+            print(f"[DEBUG] Evaluating segment: {segment.raw_text}")
+            pred = self.match(segment)
+            if pred:
+                print(f"[DEBUG] Match found by {self.name}: {pred.label} with confidence {pred.confidence}")
+                predictions.append(pred)
+        return predictions
 
     def batch_classify(self, batch_segments: List[List[TokenizedSegment]]) -> List[List[RootCausePrediction]]:
         return [self.classify(segments) for segments in batch_segments]
@@ -51,9 +58,11 @@ class PatternBasedClassifier(RuleBasedClassifier):
             self.supporting_token_extractors[compiled_pattern] = supporting_token_extractor
 
     def match(self, segment: TokenizedSegment) -> Optional[RootCausePrediction]:
+        print(f"[DEBUG] Checking patterns for segment ID {getattr(segment, 'segment_id', 'unknown')}")
         for pattern in self.patterns:
             match = pattern.search(segment.raw_text)
             if match:
+                print(f"[DEBUG] Pattern matched: {pattern.pattern}")
                 confidence = self._calculate_confidence(segment, match)
                 if confidence >= self.confidence_threshold:
                     supporting_tokens = []
@@ -71,9 +80,7 @@ class PatternBasedClassifier(RuleBasedClassifier):
         return None
 
     def _calculate_confidence(self, segment: TokenizedSegment, match) -> float:
-        base_confidence = 0.8
-        if getattr(segment, 'segment_score', 0) > 0.7:
-            base_confidence += 0.1
+        base_confidence = 0.9
         return min(base_confidence, 1.0)
 
     def _extract_provider_context(self, segment: TokenizedSegment) -> Dict[str, Any]:
@@ -82,13 +89,13 @@ class PatternBasedClassifier(RuleBasedClassifier):
 # === Concrete Classifiers ===
 class BuildFailureClassifier(PatternBasedClassifier):
     def _initialize_rules(self):
-        self.add_pattern(r"build failed|compilation failed|failed to compile", lambda m: ["build failed"])
-        self.add_pattern(r"ERROR: Build failed with an exception", lambda m: ["build exception"])
-        self.add_pattern(r"Failed to execute goal .* compile", lambda m: ["maven compile"])
-        self.add_pattern(r"error: cannot find symbol", lambda m: ["missing symbol"])
-        self.add_pattern(r"build step.*?failed|compilation.*?failed", lambda m: ["build failed"])
-        self.add_pattern(r"\berror\b.*\bcompile|compilation", lambda m: ["compilation error"])
-
+        self.add_pattern(r"\bbuild (failed|exception|step.*?failed|terminated)\b", lambda m: ["build failure"])
+        self.add_pattern(r"\bcompilation (failed|error)\b", lambda m: ["compilation error"])
+        self.add_pattern(r"\bFailed to execute goal .* compile\b", lambda m: ["maven compile error"])
+        self.add_pattern(r"\berror: cannot find symbol\b", lambda m: ["missing symbol"])
+        self.add_pattern(r"\bjava(?:c)?: error: invalid flag: -\w+", lambda m: [f"invalid flag: {m.group(0)}"])
+        self.add_pattern(r"\bERROR: Build failed with an exception\b", lambda m: ["build exception"])
+        self.add_pattern(r"\bjavac: error: .*", lambda m: ["javac error"])
 
 class OutOfMemoryClassifier(PatternBasedClassifier):
     def _initialize_rules(self):
