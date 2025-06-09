@@ -188,3 +188,17 @@ class ContextualSegment(TokenizedSegment):
     is_continuation: bool = False
     context_start_line: Optional[int] = None
     parent_context: Optional[str] = None
+# === JobRecord ===
+@dataclass
+class JobRecord:
+    job_id: str
+    confidence: float
+    membership_score: Optional[float] = None  # ✅ Add this field
+    label: Optional[str] = None
+
+@dataclass
+class ClusterCandidate:
+    cluster_id: str
+    canonical_label: Optional[str] = None
+    token_pattern: Optional[str] = None  # ✅ Add this field
+    jobs: List[JobRecord] = field(default_factory=list)
