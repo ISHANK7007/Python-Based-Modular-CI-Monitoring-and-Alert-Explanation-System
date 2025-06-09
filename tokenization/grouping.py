@@ -1,13 +1,27 @@
-from typing import Iterator, List
-from tokenization.models import TokenizedSegment
+import re
+import collections
+import itertools
+from abc import ABC, abstractmethod
+from typing import Iterator, List, Dict, Any
+
+from tokenization.models import Token, TokenizedSegment
+from tokenization.token_types import TokenType, TokenTypeSeverity
+from core.models import LogLine
 from tokenization.grouped_segment import GroupedSegment
+
+
+# --- Grouping Strategies for TokenizedSegment -> GroupedSegment ---
 
 class GroupingStrategy:
     """Strategy interface for grouping TokenizedSegments."""
     
     def group(self, segments: Iterator[TokenizedSegment]) -> Iterator[GroupedSegment]:
-        """Group segments according to the strategy."""
-        raise NotImplementedError
+        return (GroupedSegment(
+            segments=[segment],
+            primary_segment=segment,
+            context=segment.context.copy()
+        ) for segment in segments)
+
 
 class SectionBasedGrouping(GroupingStrategy):
     """Groups segments based on CI provider section markers."""
@@ -18,35 +32,24 @@ class SectionBasedGrouping(GroupingStrategy):
         
         for segment in segments:
             if self._is_section_start(segment):
-                # Yield the previous section if it exists
                 if current_section and buffer:
                     yield self._create_grouped_segment(current_section, buffer)
-                
-                # Start a new section
                 current_section = segment
                 buffer = []
             elif self._is_section_end(segment) and current_section:
-                # Add this end marker to the buffer
                 buffer.append(segment)
-                
-                # Yield the completed section
                 yield self._create_grouped_segment(current_section, buffer)
-                
-                # Reset tracking
                 current_section = None
                 buffer = []
             elif current_section:
-                # Add to current section's buffer
                 buffer.append(segment)
             else:
-                # No active section, yield as standalone
                 yield GroupedSegment(
                     segments=[segment], 
                     primary_segment=segment,
                     context=segment.context.copy()
                 )
         
-        # Handle any remaining buffered segments
         if current_section and buffer:
             yield self._create_grouped_segment(current_section, buffer)
 
@@ -62,10 +65,3 @@ class SectionBasedGrouping(GroupingStrategy):
             primary_segment=start_segment,
             context=start_segment.context.copy()
         )
-
-class CommandOutputGrouping(GroupingStrategy):
-    """Groups command execution with its output and result."""
-    
-    def group(self, segments: Iterator[TokenizedSegment]) -> Iterator[GroupedSegment]:
-        # Implementation that groups command lines with their output
-        pass
