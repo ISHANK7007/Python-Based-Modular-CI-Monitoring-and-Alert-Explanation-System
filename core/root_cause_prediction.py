@@ -1,7 +1,6 @@
-from typing import List, Dict
-from tokenization.token_relationship import TokenizedSegment
-from dataclasses import dataclass, field
 from typing import List, Dict, Any
+from dataclasses import dataclass, field
+from tokenization.token_relationship import TokenizedSegment
 
 @dataclass
 class RootCausePrediction:
@@ -13,11 +12,14 @@ class RootCausePrediction:
         confidence: Confidence score between 0.0 and 1.0.
         segment_ids: List of segment IDs associated with this prediction.
         metadata: Optional dictionary of additional metadata.
+        supporting_tokens: Optional tokens that justify or support the prediction.
     """
     label: str
     confidence: float
     segment_ids: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    supporting_tokens: List[str] = field(default_factory=list)  # ✅ Added for renderer compatibility
+
 
 # --- Base classifier ---
 class BaseClassifier:
@@ -39,8 +41,9 @@ class BuildFailureClassifier(BaseClassifier):
                 predictions.append(RootCausePrediction(
                     label=self.label,
                     confidence=0.9,
-                    segment_ids=[seg.segment_id],  # <- pass list of segment ids here
-                    metadata={"reason": "Build failure detected"}
+                    segment_ids=[seg.segment_id],
+                    metadata={"reason": "Build failure detected"},
+                    supporting_tokens=seg.tokens
                 ))
         return predictions
 
@@ -53,8 +56,9 @@ class OutOfMemoryClassifier(BaseClassifier):
                 predictions.append(RootCausePrediction(
                     label=self.label,
                     confidence=0.85,
-                    segment_ids=[seg.segment_id],  # <- pass list of segment ids here
-                    metadata={"reason": "OOM condition detected"}
+                    segment_ids=[seg.segment_id],
+                    metadata={"reason": "OOM condition detected"},
+                    supporting_tokens=seg.tokens
                 ))
         return predictions
 
@@ -67,8 +71,9 @@ class MissingDependencyClassifier(BaseClassifier):
                 predictions.append(RootCausePrediction(
                     label=self.label,
                     confidence=0.8,
-                    segment_ids=[seg.segment_id],  # <- pass list of segment ids here
-                    metadata={"reason": "Missing dependency"}
+                    segment_ids=[seg.segment_id],
+                    metadata={"reason": "Missing dependency"},
+                    supporting_tokens=seg.tokens
                 ))
         return predictions
 
