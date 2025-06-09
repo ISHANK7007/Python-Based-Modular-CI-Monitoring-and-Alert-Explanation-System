@@ -1,0 +1,21 @@
+{
+  "membership_metrics": {
+    "overall_score": 0.76,
+    "component_scores": {
+      "content_similarity": 0.68,
+      "temporal_correlation": 0.92,
+      "context_similarity": 0.77,
+      "feedback_alignment": 0.85
+    },
+    "confidence_factors": {
+      "prediction_confidence": 0.82,
+      "membership_stability": 0.91,
+      "attribution_clarity": 0.75
+    },
+    "metadata": {
+      "calculation_version": "2.3",
+      "strongest_factor": "temporal_correlation",
+      "weakest_factor": "content_similarity"
+    }
+  }
+}

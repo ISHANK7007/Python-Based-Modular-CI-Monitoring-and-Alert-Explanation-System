@@ -1,0 +1,1 @@
+ci-log-analysis triage validate --export-audit [path] [--format FORMAT]

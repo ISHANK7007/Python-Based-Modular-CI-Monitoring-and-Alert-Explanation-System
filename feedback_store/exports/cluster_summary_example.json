@@ -1,0 +1,183 @@
+{
+  "format_version": "1.0",
+  "generation_timestamp": "2023-06-15T12:34:56Z",
+  "cluster": {
+    "id": "cluster-12345",
+    "name": "MySQL Connection Timeout",
+    "primary_label": "DATABASE_CONNECTION_ERROR",
+    "status": "active",
+    "timeline": {
+      "first_seen": "2023-05-01T08:12:34Z",
+      "last_seen": "2023-06-14T17:45:23Z",
+      "peak_period": {
+        "start": "2023-05-15T00:00:00Z",
+        "end": "2023-05-16T00:00:00Z",
+        "count": 78
+      },
+      "age_days": 45,
+      "occurrence_count_timeline": {
+        "type": "daily",
+        "data": [0, 2, 5, 12, 78, 43, 15, 8, 3, 0, 1, 0, 0, 3, 7]
+      }
+    },
+    "metrics": {
+      "total_occurrences": 187,
+      "active_occurrences": 23,
+      "distinct_repositories": 7,
+      "distinct_workflows": 12,
+      "avg_resolution_time_hours": 4.2,
+      "impact_score": 78,
+      "trending_direction": "decreasing",
+      "correlation_confidence": 0.86
+    },
+    "classification": {
+      "label_distribution": {
+        "DATABASE_CONNECTION_ERROR": 167,
+        "TIMEOUT_ERROR": 15,
+        "MISCELLANEOUS": 5
+      },
+      "confidence_metrics": {
+        "avg_confidence": 0.84,
+        "min_confidence": 0.67,
+        "confidence_distribution": [0, 0, 0, 0, 0, 5, 12, 43, 89, 38]
+      },
+      "membership_distribution": {
+        "core": 132,
+        "standard": 47,
+        "peripheral": 8
+      }
+    },
+    "explanation": {
+      "summary": "MySQL connection timeout occurred during test initialization. The database server is not responding to connection requests within the configured timeout period.",
+      "root_cause": "Intermittent network latency between CI runners and the database service is causing connections to time out.",
+      "recommendation": "Increase the connection timeout setting in the database configuration or implement connection retries with exponential backoff.",
+      "evidence": [
+        {
+          "type": "error_message",
+          "text": "Error: Connection to MySQL server timed out",
+          "frequency": 0.92
+        },
+        {
+          "type": "stack_trace",
+          "text": "at Database.connect (database.js:102)\nat TestEnvironment.setup (test_setup.js:45)",
+          "frequency": 0.87
+        }
+      ]
+    },
+    "representative_examples": {
+      "primary_example": {
+        "job_id": "job-78945",
+        "repository": "org/repo-name",
+        "workflow": "integration-tests",
+        "timestamp": "2023-05-15T14:23:45Z",
+        "log_excerpt": "Error: Connection to MySQL server at '10.0.12.34:3306' timed out after 30000ms\n  at Handshake.onTimeout (database.js:102:23)\n  at Socket.connect (net.js:1128:14)",
+        "confidence": 0.93,
+        "membership_score": 0.91,
+        "link": "/jobs/job-78945"
+      },
+      "additional_examples": [
+        {
+          "job_id": "job-79012",
+          "repository": "org/different-repo",
+          "timestamp": "2023-05-15T16:42:12Z",
+          "log_excerpt_short": "Error: Connection to MySQL server timed out",
+          "link": "/jobs/job-79012"
+        }
+      ]
+    },
+    "contextual_data": {
+      "affected_repositories": [
+        {
+          "name": "org/repo-name",
+          "count": 87,
+          "percentage": 46.5
+        },
+        {
+          "name": "org/different-repo",
+          "count": 35,
+          "percentage": 18.7
+        }
+      ],
+      "affected_workflows": [
+        {
+          "name": "integration-tests",
+          "count": 112,
+          "percentage": 59.9
+        }
+      ],
+      "providers": [
+        {
+          "name": "GitHub",
+          "count": 142,
+          "percentage": 75.9
+        },
+        {
+          "name": "GitLab",
+          "count": 45,
+          "percentage": 24.1
+        }
+      ],
+      "temporal_patterns": {
+        "day_of_week_distribution": [12, 35, 42, 38, 41, 15, 4],
+        "hour_of_day_distribution": []
+      }
+    },
+    "related_clusters": [
+      {
+        "id": "cluster-12346",
+        "name": "MySQL Authentication Failure",
+        "similarity_type": "related_cause",
+        "similarity_score": 0.72,
+        "link": "/clusters/cluster-12346"
+      }
+    ],
+    "jobs_summary": {
+      "total_count": 187,
+      "included_sample_size": 10,
+      "samples": [
+        {
+          "job_id": "job-78945",
+          "repository": "org/repo-name",
+          "workflow": "integration-tests",
+          "status": "failed",
+          "timestamp": "2023-05-15T14:23:45Z",
+          "confidence": 0.93,
+          "membership_score": 0.91,
+          "resolution_status": "unresolved",
+          "link": "/jobs/job-78945"
+        }
+      ],
+      "jobs_link": "/api/v1/clusters/cluster-12345/jobs"
+    },
+    "feedback_metrics": {
+      "feedback_count": 12,
+      "positive_feedback": 10,
+      "negative_feedback": 2,
+      "correction_suggestions": [
+        {
+          "label": "NETWORK_LATENCY_ISSUE",
+          "count": 2
+        }
+      ]
+    }
+  },
+  "rendering": {
+    "priority_level": "high",
+    "suggested_visualizations": [
+      "timeline",
+      "repository_breakdown",
+      "pattern_distribution"
+    ],
+    "color_hint": "#E57373",
+    "expandable_sections": [
+      "representative_examples",
+      "contextual_data",
+      "jobs_summary"
+    ]
+  },
+  "config": {
+    "detail_level": "STANDARD",
+    "include_jobs_limit": 10,
+    "trending_window_days": 14
+  }
+}

@@ -1,0 +1,52 @@
+[tox]
+envlist = py310, py311, lint, docs, security, typing
+isolated_build = True
+
+[testenv]
+deps =
+    pytest
+    pytest-cov
+    pytest-xdist
+    pytest-benchmark
+commands =
+    pytest {posargs:tests} --cov=ci_log_analysis --cov-report=xml
+
+[testenv:lint]
+deps =
+    black
+    isort
+    flake8
+    flake8-docstrings
+    pylint
+commands =
+    black --check ci_log_analysis tests
+    isort --check-only --profile black ci_log_analysis tests
+    flake8 ci_log_analysis tests
+    pylint ci_log_analysis
+
+[testenv:docs]
+deps =
+    mkdocs
+    mkdocs-material
+    markdownlint-cli
+    doc8
+commands =
+    markdownlint docs README.md
+    doc8 docs
+    mkdocs build
+
+[testenv:typing]
+deps =
+    mypy
+    types-PyYAML
+    types-requests
+commands =
+    mypy ci_log_analysis
+
+[testenv:security]
+deps =
+    bandit
+    safety
+commands =
+    bandit -r ci_log_analysis
+    safety check

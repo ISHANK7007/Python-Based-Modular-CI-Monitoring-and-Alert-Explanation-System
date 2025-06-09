@@ -1,22 +1,19 @@
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 import datetime
 import json
+from uuid import uuid4
+from tokenization.token_types import TokenType
 
+# === LogLine ===
 @dataclass
 class LogLine:
-    """Represents a normalized line from a CI log with both semantic and raw fields.
-    Includes structured fields for analysis and raw fields for debugging.
-    """
-
-    # === Required Semantic Fields ===
     timestamp: Optional[datetime.datetime]
     level: str
     message: str
     source: str
     raw_content: str
 
-    # === Optional Fields ===
     metadata: Dict[str, Any] = field(default_factory=dict)
     raw_timestamp: Optional[str] = None
 
@@ -91,7 +88,6 @@ class LogLine:
 
     def get_context_summary(self) -> str:
         parts = []
-
         ts = self.timestamp.isoformat() if self.timestamp else "no-timestamp"
         summary = f"[{self.level.upper()}] {ts}"
 
@@ -119,5 +115,90 @@ class LogLine:
 
         if parts:
             summary += " | " + " | ".join(parts)
-
         return summary
+
+# === Token ===
+@dataclass
+class Token:
+    type: TokenType
+    value: str
+    line_reference: int
+    source_line: LogLine
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    structural_context: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        if self.source_line and not self.structural_context:
+            self.structural_context = {
+                'section': self.source_line.section,
+                'stream_type': self.source_line.stream_type,
+                'step_name': self.source_line.step_name,
+                'job_id': self.source_line.job_id
+            }
+
+    @property
+    def section(self) -> Optional[str]:
+        return self.structural_context.get('section') or self.source_line.section
+
+    @property
+    def stream_type(self) -> Optional[str]:
+        return self.structural_context.get('stream_type') or self.source_line.stream_type
+
+    @property
+    def step_name(self) -> Optional[str]:
+        return self.structural_context.get('step_name') or self.source_line.step_name
+
+    @property
+    def job_id(self) -> Optional[str]:
+        return self.structural_context.get('job_id') or self.source_line.job_id
+
+    def crosses_boundary_with(self, other_token: 'Token') -> Optional[str]:
+        if self.section != other_token.section:
+            return 'SECTION'
+        if self.stream_type != other_token.stream_type:
+            return 'STREAM'
+        if self.step_name != other_token.step_name:
+            return 'STEP'
+        if self.job_id != other_token.job_id:
+            return 'JOB'
+        return None
+
+# === TokenizedSegment ===
+@dataclass
+class TokenizedSegment:
+    tokens: List[Token]
+    raw_text: str
+    line_range: Tuple[int, int]
+
+    id: str = field(default_factory=lambda: str(uuid4()))
+    context: Dict[str, Any] = field(default_factory=dict)
+    scope: Optional[str] = None
+    segment_score: float = 0.0
+    section_context: Optional[str] = None
+    provider: Optional[str] = None
+    confidence_level: float = 1.0
+    token_distribution: Dict[TokenType, int] = field(default_factory=dict)
+    entropy: float = 0.0
+
+# === ContextualSegment ===
+@dataclass
+class ContextualSegment(TokenizedSegment):
+    context_clues: List[Any] = field(default_factory=list)
+    related_segments: List[int] = field(default_factory=list)
+    is_continuation: bool = False
+    context_start_line: Optional[int] = None
+    parent_context: Optional[str] = None
+# === JobRecord ===
+@dataclass
+class JobRecord:
+    job_id: str
+    confidence: float
+    membership_score: Optional[float] = None  # ✅ Add this field
+    label: Optional[str] = None
+
+@dataclass
+class ClusterCandidate:
+    cluster_id: str
+    canonical_label: Optional[str] = None
+    token_pattern: Optional[str] = None  # ✅ Add this field
+    jobs: List[JobRecord] = field(default_factory=list)
