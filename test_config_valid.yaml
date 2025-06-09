@@ -1,0 +1,18 @@
+exports:
+  default_export_format: "markdown"
+  default_filters:
+    min_confidence: 0.7
+    categories: ["error", "warning", "critical"]
+    max_results: 100
+  presentation:
+    theme_mode: "auto"
+    color_output: true
+    detail_level: "STANDARD"
+  cli:
+    interactive: true
+    progress_bar: true
+    result_pagination: 20
+  batch:
+    summary_header: true
+    include_metadata: true
+    file_naming_pattern: "analysis-{timestamp}-{job_id}"

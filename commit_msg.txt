@@ -1,0 +1,13 @@
+Add interactive streaming UI, filtering, feedback, and export features
+
+- Implemented live row formatting with label, confidence, and color-coded status
+- Added StreamFilterEngine to support dynamic --filter expressions
+- Integrated row highlighting using RootCausePrediction fields with ellipsis truncation
+- Applied render throttling logic to handle high-frequency log bursts
+- Enabled interactive CLI commands: (f)eedback, (e)xpand, (c)luster view
+- Auto-updated rows upon feedback override with [FEEDBACK] tag
+- Added fallback display for unclassified logs with "Pending explanation" message
+- Introduced export functionality for Markdown/HTML summaries using --export
+- Optimized rendering via offscreen buffering and conditional refresh
+- Added support for config.yaml with display, performance, and filter preferences
+- Created test cases for streaming collapse and feedback interaction

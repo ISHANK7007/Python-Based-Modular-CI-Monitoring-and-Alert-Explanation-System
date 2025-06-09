@@ -1,0 +1,33 @@
+{
+  "event_id": "mut-12345",
+  "timestamp": "2023-06-15T14:32:10Z",
+  "job_id": "job-789",
+  "user_id": "user-456",
+  "mutation_type": "FEEDBACK_CORRECTION",
+  "previous_state": {
+    "cluster_id": "cluster-123",
+    "label": "DEPENDENCY_VERSION_MISMATCH",
+    "confidence": 0.78,
+    "assignment_timestamp": "2023-06-14T09:12:43Z"
+  },
+  "new_state": {
+    "cluster_id": "cluster-456",
+    "label": "LIBRARY_INCOMPATIBILITY",
+    "confidence": 0.92,
+    "assignment_timestamp": "2023-06-15T14:32:10Z",
+    "feedback_justification": "Package xyz requires specific version constraints"
+  },
+  "similarity_metrics": {
+    "old_jaccard": 0.65,
+    "new_jaccard": 0.87,
+    "token_overlaps": {
+      "error_messages": 0.73,
+      "stack_traces": 0.91,
+      "context_lines": 0.62
+    }
+  },
+  "propagation": {
+    "eligible_similar_jobs": 5,
+    "auto_propagated": false
+  }
+}

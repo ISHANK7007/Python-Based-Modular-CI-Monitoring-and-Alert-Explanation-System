@@ -1,0 +1,22 @@
+ci_test_logs/
+├── github/
+│   ├── basic_failure.log
+│   ├── timeout_error.log
+│   ├── dependency_conflict.log
+│   └── complex_mixed_errors.log
+├── jenkins/
+│   ├── build_failure.log
+│   ├── test_failure.log
+│   └── deploy_error.log
+├── gitlab/
+│   └── ...
+└── expected_outputs/
+    ├── github/
+    │   ├── basic_failure/
+    │   │   ├── tokens.json      # Expected tokenization
+    │   │   ├── classification.json  # Expected classification
+    │   │   ├── markdown_output.md   # Expected rendering
+    │   │   └── json_output.json     # Expected JSON output
+    │   └── ...
+    ├── jenkins/
+    └── gitlab/
