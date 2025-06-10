@@ -77,8 +77,12 @@ This directory contains Python scripts designed to simulate real CI job scenario
 - `oom_simulation.py` → Infinite loop with memory allocation to simulate OutOfMemory
 - `failing_test.py` → Intentional assertion failure
 - `clean_pass.py` → A valid script that runs without error
-| `dependency_conflict_error.py` | Emulates a CI failure due to incompatible package versions during environment setup | [`dependency_conflict.log`](logs/generated/dependency_conflict.log) |
-| `timeout_error_simulation.py` | Simulates a CI job step that times out due to prolonged execution | [`timeout_error.log`](logs/generated/timeout_error.log) |
+| `dependency_conflict_error.py` | This script simulates an environment where incompatible package versions are installed to trigger a dependency conflict.
+- File: logs/code_inputs/dependency_conflict_error.py
+- Scenario: Attempts to install `tensorflow==2.11.0` and `keras==2.8.0`, which are incompatible.
+- Expected behavior: Installation fails and a `RuntimeError` is raised.
+- Purpose: Used to generate realistic error logs in logs/generated/dependency_conflict.log for downstream testing and pipeline validation.| [`dependency_conflict.log`](logs/generated/dependency_conflict.log) |
+| `timeout_error_simulation.py` | Simulates a CI job that stalls and exceeds its time quota. The script deliberately triggers a TimeoutError to mimic long-running or stuck processes that cause CI pipelines to abort due to timeout thresholds. Useful for validating timeout handling, alerting, and trace diagnostics. | [`timeout_error.log`](logs/generated/timeout_error.log) |
 
 ### Usage:
 Run each script with Python and capture stderr to generate logs:
