@@ -77,6 +77,8 @@ This directory contains Python scripts designed to simulate real CI job scenario
 - `oom_simulation.py` → Infinite loop with memory allocation to simulate OutOfMemory
 - `failing_test.py` → Intentional assertion failure
 - `clean_pass.py` → A valid script that runs without error
+| `dependency_conflict_error.py` | Emulates a CI failure due to incompatible package versions during environment setup | [`dependency_conflict.log`](logs/generated/dependency_conflict.log) |
+| `timeout_error_simulation.py` | Simulates a CI job step that times out due to prolonged execution | [`timeout_error.log`](logs/generated/timeout_error.log) |
 
 ### Usage:
 Run each script with Python and capture stderr to generate logs:
@@ -86,6 +88,8 @@ python logs/code_inputs/syntax_error.py 2> output.log
 python logs/code_inputs/oom_simulation.py 2> output.log
 python logs/code_inputs/failing_test.py 2> output.log
 python logs/code_inputs/clean_pass.py > output.log
+python Output_code/logs/code_inputs/dependency_conflict_error.py 2> Output_code/logs/generated/dependency_conflict.log
+python Output_code/logs/code_inputs/timeout_error_simulation.py 2> Output_code/logs/generated/timeout_error.log
 
 ```
 ### Input Code Execution Screenshots
@@ -97,4 +101,7 @@ python logs/code_inputs/clean_pass.py > output.log
   ![failing_test](https://drive.google.com/file/d/1yWccr1u5Y4Lylqga8Pxwk7Mh-UgpH2jY/view?usp=drive_link)
 - `clean_pass.py`
   ![clean_pass](https://drive.google.com/file/d/1eVxvicWXvhXIkc3eadSn8TGNkRKN7ENA/view?usp=drive_link)
-
+- `dependency_conflict_error.py`
+  ![dependency_conflict_error](https://drive.google.com/file/d/1ze9Y8_-sQBb7YtboYg1kykkVNDTTAfTg/view?usp=drive_link)
+- `timeout_error_simulation.py`
+  ![timeout_error_simulation](https://drive.google.com/file/d/1jWZBtOalPJTVs9hfStct6I7iY9wKoU9s/view?usp=drive_linkd:\P16 data\Python-Based Modular)
